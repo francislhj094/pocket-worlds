@@ -25,7 +25,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.launchfast.pocketworlds"
+      "package": "co.launchfast.pocketworlds"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
