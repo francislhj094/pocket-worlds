@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Pocket Worlds Game",
+    "name": "Pocket Worlds",
     "slug": "pocket-worlds-game",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "rork-app",
+    "scheme": "launchfast-app",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -15,14 +15,17 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "app.rork.pocket-worlds-game"
+      "bundleIdentifier": "com.launchfast.pocketworlds",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.pocket_worlds_game"
+      "package": "com.launchfast.pocketworlds"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
@@ -31,7 +34,7 @@
       [
         "expo-router",
         {
-          "origin": "https://rork.com/"
+          "origin": "https://launchfast.com/"
         }
       ],
       "expo-font",
@@ -39,6 +42,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": "https://launchfast.com/"
+      },
+      "eas": {
+        "projectId": "849511d3-abc8-4d21-95dd-432951c0d6b9"
+      }
     }
   }
 }
