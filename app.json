@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.launchfast.pocketworlds",
+      "bundleIdentifier": "co.launchfast.pocketworlds",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
