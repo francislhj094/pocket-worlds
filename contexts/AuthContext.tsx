@@ -1,6 +1,5 @@
-import createContextHook from '@nkzw/create-context-hook';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { AuthUser, AuthState, SignUpData, LoginData } from '@/types/auth';
 
 const STORAGE_KEYS = {
@@ -20,7 +19,21 @@ interface MockUser {
   createdAt: number;
 }
 
-export const [AuthProvider, useAuth] = createContextHook(() => {
+interface AuthContextType extends AuthState {
+  checkUsernameAvailability: (username: string) => Promise<boolean>;
+  checkEmailAvailability: (email: string) => Promise<boolean>;
+  signUp: (data: SignUpData) => Promise<{ success: boolean; error?: string }>;
+  verifyEmail: (code: string) => Promise<{ success: boolean; error?: string }>;
+  resendVerificationCode: () => Promise<boolean>;
+  login: (data: LoginData) => Promise<{ success: boolean; error?: string }>;
+  loginAsGuest: () => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     isAuthenticated: false,
@@ -329,7 +342,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     }
   }, []);
 
-  return {
+  const value: AuthContextType = {
     ...authState,
     checkUsernameAvailability,
     checkEmailAvailability,
@@ -341,4 +354,14 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     requestPasswordReset,
     logout,
   };
-});
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}

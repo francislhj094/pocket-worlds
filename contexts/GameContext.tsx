@@ -1,6 +1,5 @@
-import createContextHook from '@nkzw/create-context-hook';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useCallback, useEffect, useState } from 'react';
+import { createContext, useContext, useCallback, useEffect, useState, ReactNode } from 'react';
 import { UserProfile, AvatarCustomization, GameStats, Achievement } from '@/types/game';
 import { ACHIEVEMENTS, ENERGY_REFILL_MINUTES, XP_PER_LEVEL } from '@/constants/gameData';
 
@@ -40,25 +39,74 @@ const DEFAULT_PROFILE: UserProfile = {
   createdAt: Date.now(),
 };
 
-export const [GameProvider, useGame] = createContextHook(() => {
+interface GameContextType {
+  profile: UserProfile;
+  isLoading: boolean;
+  hasSeenAvatarCreator: boolean;
+  updateAvatar: (avatar: AvatarCustomization) => void;
+  completeAvatarCreator: () => Promise<void>;
+  spendEnergy: (amount: number) => boolean;
+  addCoins: (amount: number) => void;
+  addGems: (amount: number) => void;
+  addXP: (amount: number) => void;
+  updateGameStats: (game: keyof UserProfile['gameStats'], score: number, coinsEarned: number) => void;
+  purchaseItem: (itemId: string, category: keyof UserProfile['inventory'], price: number, currency: 'coins' | 'gems') => boolean;
+  claimDailyReward: (coins: number, gems: number, energy: number) => void;
+  getAchievementProgress: () => Achievement[];
+}
+
+const GameContext = createContext<GameContextType | undefined>(undefined);
+
+export function GameProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
   const [isLoading, setIsLoading] = useState(true);
   const [hasSeenAvatarCreator, setHasSeenAvatarCreator] = useState(false);
 
-  useEffect(() => {
-    loadProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const saveProfile = async (newProfile: UserProfile) => {
+    try {
+      await AsyncStorage.setItem('profile', JSON.stringify(newProfile));
+      setProfile(newProfile);
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+    }
+  };
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      updateEnergy();
-    }, 60000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const updateEnergy = useCallback((currentProfile?: UserProfile) => {
+    const p = currentProfile || profile;
+    if (p.energy >= p.maxEnergy) return;
+
+    const now = Date.now();
+    const timePassed = now - p.lastEnergyUpdate;
+    const energyToAdd = Math.floor(timePassed / (ENERGY_REFILL_MINUTES * 60 * 1000));
+
+    if (energyToAdd > 0) {
+      const newEnergy = Math.min(p.maxEnergy, p.energy + energyToAdd);
+      const updatedProfile = {
+        ...p,
+        energy: newEnergy,
+        lastEnergyUpdate: now,
+      };
+      saveProfile(updatedProfile);
+    }
   }, [profile]);
 
-  const loadProfile = async () => {
+  const checkDailyLogin = useCallback((currentProfile: UserProfile) => {
+    const today = new Date().toDateString();
+    if (currentProfile.lastLoginDate !== today) {
+      const yesterday = new Date(Date.now() - 86400000).toDateString();
+      const isConsecutive = currentProfile.lastLoginDate === yesterday;
+      const newStreak = isConsecutive ? currentProfile.dailyStreak + 1 : 1;
+
+      const updatedProfile = {
+        ...currentProfile,
+        lastLoginDate: today,
+        dailyStreak: newStreak,
+      };
+      saveProfile(updatedProfile);
+    }
+  }, []);
+
+  const loadProfile = useCallback(async () => {
     console.log('[GameContext] Loading profile...');
     try {
       const stored = await AsyncStorage.getItem('profile');
@@ -80,51 +128,18 @@ export const [GameProvider, useGame] = createContextHook(() => {
       setIsLoading(false);
       console.log('[GameContext] Loading complete');
     }
-  };
+  }, [updateEnergy, checkDailyLogin]);
 
-  const saveProfile = async (newProfile: UserProfile) => {
-    try {
-      await AsyncStorage.setItem('profile', JSON.stringify(newProfile));
-      setProfile(newProfile);
-    } catch (error) {
-      console.error('Failed to save profile:', error);
-    }
-  };
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
-  const updateEnergy = (currentProfile?: UserProfile) => {
-    const p = currentProfile || profile;
-    if (p.energy >= p.maxEnergy) return;
-
-    const now = Date.now();
-    const timePassed = now - p.lastEnergyUpdate;
-    const energyToAdd = Math.floor(timePassed / (ENERGY_REFILL_MINUTES * 60 * 1000));
-
-    if (energyToAdd > 0) {
-      const newEnergy = Math.min(p.maxEnergy, p.energy + energyToAdd);
-      const updatedProfile = {
-        ...p,
-        energy: newEnergy,
-        lastEnergyUpdate: now,
-      };
-      saveProfile(updatedProfile);
-    }
-  };
-
-  const checkDailyLogin = (currentProfile: UserProfile) => {
-    const today = new Date().toDateString();
-    if (currentProfile.lastLoginDate !== today) {
-      const yesterday = new Date(Date.now() - 86400000).toDateString();
-      const isConsecutive = currentProfile.lastLoginDate === yesterday;
-      const newStreak = isConsecutive ? currentProfile.dailyStreak + 1 : 1;
-
-      const updatedProfile = {
-        ...currentProfile,
-        lastLoginDate: today,
-        dailyStreak: newStreak,
-      };
-      saveProfile(updatedProfile);
-    }
-  };
+  useEffect(() => {
+    const interval = setInterval(() => {
+      updateEnergy();
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [updateEnergy]);
 
   const updateAvatar = useCallback((avatar: AvatarCustomization) => {
     saveProfile({ ...profile, avatar });
@@ -269,8 +284,6 @@ export const [GameProvider, useGame] = createContextHook(() => {
     saveProfile(newProfile);
   }, [profile]);
 
-
-
   const getAchievementProgress = (): Achievement[] => {
     const totalCoinsCollected = Object.values(profile.gameStats).reduce((sum, stats) => sum + stats.totalCoins, 0);
     const totalItemsPurchased = Object.values(profile.inventory).reduce((sum, items) => sum + items.length, 0) - 5;
@@ -304,7 +317,7 @@ export const [GameProvider, useGame] = createContextHook(() => {
     });
   };
 
-  return {
+  const value: GameContextType = {
     profile,
     isLoading,
     hasSeenAvatarCreator,
@@ -319,4 +332,14 @@ export const [GameProvider, useGame] = createContextHook(() => {
     claimDailyReward,
     getAchievementProgress,
   };
-});
+
+  return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
+}
+
+export function useGame() {
+  const context = useContext(GameContext);
+  if (context === undefined) {
+    throw new Error('useGame must be used within a GameProvider');
+  }
+  return context;
+}
