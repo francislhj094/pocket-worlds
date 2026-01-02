@@ -33,11 +33,14 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   }, []);
 
   const loadAuthState = async () => {
+    console.log('[AuthContext] Loading auth state...');
     try {
       const [storedUser, pendingVerification] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEYS.AUTH_USER),
         AsyncStorage.getItem(STORAGE_KEYS.PENDING_VERIFICATION),
       ]);
+
+      console.log('[AuthContext] Loaded from storage:', { hasUser: !!storedUser, hasPending: !!pendingVerification });
 
       setAuthState({
         user: storedUser ? JSON.parse(storedUser) : null,
@@ -45,8 +48,9 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         isLoading: false,
         pendingVerification: pendingVerification ? JSON.parse(pendingVerification) : null,
       });
+      console.log('[AuthContext] Auth state loaded successfully');
     } catch (error) {
-      console.error('Failed to load auth state:', error);
+      console.error('[AuthContext] Failed to load auth state:', error);
       setAuthState({
         user: null,
         isAuthenticated: false,

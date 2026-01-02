@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { View, StyleSheet, Animated, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useGame } from '@/contexts/GameContext';
@@ -11,6 +11,7 @@ export default function SplashScreen() {
   const { isLoading: authLoading, isAuthenticated } = useAuth();
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
+  const [debugInfo, setDebugInfo] = useState('');
 
   useEffect(() => {
     Animated.sequence([
@@ -29,19 +30,40 @@ export default function SplashScreen() {
   }, [scaleAnim, rotateAnim]);
 
   useEffect(() => {
+    console.log('[SPLASH] Loading states:', { gameLoading, authLoading, isAuthenticated, hasSeenAvatarCreator });
+    setDebugInfo(`Game: ${gameLoading ? 'loading' : 'ready'}, Auth: ${authLoading ? 'loading' : 'ready'}`);
+
     if (!gameLoading && !authLoading) {
       const timer = setTimeout(() => {
-        if (!isAuthenticated) {
+        console.log('[SPLASH] Navigating...', { isAuthenticated, hasSeenAvatarCreator });
+        try {
+          if (!isAuthenticated) {
+            console.log('[SPLASH] -> /auth/welcome');
+            router.replace('/auth/welcome');
+          } else if (!hasSeenAvatarCreator) {
+            console.log('[SPLASH] -> /avatar-creator');
+            router.replace('/avatar-creator');
+          } else {
+            console.log('[SPLASH] -> /home');
+            router.replace('/home');
+          }
+        } catch (error) {
+          console.error('[SPLASH] Navigation error:', error);
           router.replace('/auth/welcome');
-        } else if (!hasSeenAvatarCreator) {
-          router.replace('/avatar-creator');
-        } else {
-          router.replace('/home');
         }
       }, 2000);
 
       return () => clearTimeout(timer);
     }
+
+    const timeout = setTimeout(() => {
+      if (gameLoading || authLoading) {
+        console.error('[SPLASH] Loading timeout - forcing navigation');
+        router.replace('/auth/welcome');
+      }
+    }, 10000);
+
+    return () => clearTimeout(timeout);
   }, [gameLoading, authLoading, isAuthenticated, hasSeenAvatarCreator, router]);
 
   const spin = rotateAnim.interpolate({
@@ -79,6 +101,10 @@ export default function SplashScreen() {
       <Animated.View style={[styles.loadingBar, { opacity: scaleAnim }]}>
         <View style={styles.loadingFill} />
       </Animated.View>
+
+      {__DEV__ && (
+        <Text style={styles.debugText}>{debugInfo}</Text>
+      )}
     </LinearGradient>
   );
 }
@@ -163,5 +189,11 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#14b8a6',
     borderRadius: 3,
+  },
+  debugText: {
+    position: 'absolute',
+    bottom: 40,
+    color: '#888',
+    fontSize: 12,
   },
 });

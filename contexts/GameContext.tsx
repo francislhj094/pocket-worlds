@@ -59,9 +59,11 @@ export const [GameProvider, useGame] = createContextHook(() => {
   }, [profile]);
 
   const loadProfile = async () => {
+    console.log('[GameContext] Loading profile...');
     try {
       const stored = await AsyncStorage.getItem('profile');
       const seen = await AsyncStorage.getItem('hasSeenAvatarCreator');
+      console.log('[GameContext] Loaded from storage:', { hasProfile: !!stored, hasSeen: !!seen });
       if (stored) {
         const parsed = JSON.parse(stored);
         setProfile(parsed);
@@ -71,10 +73,12 @@ export const [GameProvider, useGame] = createContextHook(() => {
       if (seen) {
         setHasSeenAvatarCreator(true);
       }
+      console.log('[GameContext] Profile loaded successfully');
     } catch (error) {
-      console.error('Failed to load profile:', error);
+      console.error('[GameContext] Failed to load profile:', error);
     } finally {
       setIsLoading(false);
+      console.log('[GameContext] Loading complete');
     }
   };
 
