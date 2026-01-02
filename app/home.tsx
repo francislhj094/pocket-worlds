@@ -134,9 +134,9 @@ export default function Home() {
   }, [profile.dailyStreak, claimDailyReward]);
 
   const games = [
-    { id: 'obby-rush', name: 'Obby Rush', icon: '🏃', color: '#ef4444', route: '/games/obby-rush' as const },
-    { id: 'memory-match', name: 'Memory Match', icon: '🧠', color: '#f59e0b', route: '/games/memory-match' as const },
-    { id: 'dodge-master', name: 'Dodge Master', icon: '⚡', color: '#8b5cf6', route: '/games/dodge-master' as const },
+    { id: 'obbyRush', name: 'Obby Rush', icon: '🏃', color: '#ef4444', route: '/games/obby-rush' as const },
+    { id: 'memoryMatch', name: 'Memory Match', icon: '🧠', color: '#f59e0b', route: '/games/memory-match' as const },
+    { id: 'dodgeMaster', name: 'Dodge Master', icon: '⚡', color: '#8b5cf6', route: '/games/dodge-master' as const },
   ];
 
   return (
